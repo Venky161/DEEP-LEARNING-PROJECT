@@ -21,8 +21,7 @@ except Exception:
 st.set_page_config(page_title="Room Cancellation Predictor", layout="centered", page_icon="🏨")
 
 # ---------------- Safe, readable CSS ----------------
-# This CSS aims to avoid "white-out" by enforcing readable dark text inside cards
-# while keeping a pleasant page gradient. It also styles inputs/buttons consistently.
+# Use triple-quoted strings and single quotes inside HTML to avoid quoting problems.
 st.markdown(
     """
     <style>
@@ -33,7 +32,7 @@ st.markdown(
 
     /* Make sure the main App text is dark and legible */
     .stApp, .stApp * {
-        color: #0f172a !important;               /* dark slate text for legibility */
+        color: #0f172a !important;
     }
 
     /* Main white card */
@@ -46,11 +45,7 @@ st.markdown(
         margin-bottom: 22px !important;
     }
 
-    /* Titles inside cards */
-    .main-card h1, .main-card h2, .main-card h3 {
-        color: #0f172a !important;
-    }
-    .small-note { color: #4b5563 !important; } /* muted description text */
+    .small-note { color: #4b5563 !important; }
 
     /* Tabs visual */
     .stTabs [data-baseweb="tab"] {
@@ -87,9 +82,9 @@ st.markdown(
         color: #0f172a !important;
     }
 
-    /* Number input / spin buttons style (works for most Streamlit versions) */
+    /* Number input styling */
     div[role="spinbutton"] input[type="number"], input[type="number"] {
-        background: #11182710 !important;  /* very light tint */
+        background: #11182710 !important;
         color: #0f172a !important;
         border-radius: 8px !important;
         padding: 10px 12px !important;
@@ -105,15 +100,7 @@ st.markdown(
         color: #0f172a !important;
     }
 
-    /* Ensure markdown headings are visible */
-    .css-1v0mbdj h1, .css-1v0mbdj h2, .css-1v0mbdj h3, h1, h2, h3 {
-        color: #0f172a !important;
-    }
-
-    /* Small note style */
-    .small-note { font-size: 0.95rem; color: #526270 !important; }
-
-    /* Make the sidebar readable too */
+    /* Sidebar readability */
     [data-testid="stSidebar"] { background: #ffffff !important; color: #0f172a !important; box-shadow: 0 6px 20px rgba(2,6,23,0.04) inset; }
 
     </style>
@@ -130,7 +117,7 @@ PREPROC_PATH = "/mnt/data/preprocessor.pkl"    # adjust if your preprocessor fil
 def load_preprocessor(path=PREPROC_PATH):
     if os.path.exists(path):
         try:
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 pre = pickle.load(f)
             return pre
         except Exception as e:
@@ -143,6 +130,7 @@ def load_trained_model(path=MODEL_PATH):
     if not os.path.exists(path):
         return None
     lower = path.lower()
+    # Keras .h5 model
     if lower.endswith(".h5") or lower.endswith(".keras"):
         if KERAS_AVAILABLE:
             try:
@@ -153,14 +141,16 @@ def load_trained_model(path=MODEL_PATH):
         else:
             st.warning("Keras/TensorFlow not available; .h5 cannot be loaded here.")
             return None
+    # Try joblib (sklearn)
     if JOBLIB_AVAILABLE:
         try:
             m = joblib.load(path)
             return ("sklearn", m)
         except Exception:
             pass
+    # Fallback to pickle
     try:
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             m = pickle.load(f)
         return ("pickle", m)
     except Exception as e:
@@ -170,10 +160,10 @@ def load_trained_model(path=MODEL_PATH):
 # Fallback heuristic predictor
 def heuristic_predict(row):
     score = 0.0
-    score += 0.45 * (row.get('lead_time', 0) / 365.0)
-    score += 0.25 * (1 if row.get('previous_cancellations', 0) > 0 else 0)
-    score += 0.15 * (1 if row.get('deposit_type') == 'No Deposit' else 0)
-    score += 0.15 * (1 if row.get('booking_changes', 0) > 2 else 0)
+    score += 0.45 * (row.get("lead_time", 0) / 365.0)
+    score += 0.25 * (1 if row.get("previous_cancellations", 0) > 0 else 0)
+    score += 0.15 * (1 if row.get("deposit_type") == "No Deposit" else 0)
+    score += 0.15 * (1 if row.get("booking_changes", 0) > 2 else 0)
     prob = float(min(max(score, 0.0), 0.99))
     return prob
 
@@ -202,6 +192,7 @@ uploaded_model = st.sidebar.file_uploader("Upload model (.pkl/.joblib/.h5)", typ
 
 if uploaded_preproc is not None:
     try:
+        uploaded_preproc.seek(0)
         preproc_obj = pickle.load(uploaded_preproc)
         st.sidebar.success("Preprocessor uploaded (session).")
         st.session_state["_uploaded_preproc"] = preproc_obj
@@ -210,7 +201,6 @@ if uploaded_preproc is not None:
 
 if uploaded_model is not None:
     try:
-        # handle keras h5 specially by writing to tmp if needed
         if uploaded_model.name.lower().endswith(".h5") and KERAS_AVAILABLE:
             tmp = "/tmp/_uploaded_model.h5"
             with open(tmp, "wb") as f:
@@ -218,10 +208,10 @@ if uploaded_model is not None:
             model_loaded = ("keras", keras_load_model(tmp))
         else:
             try:
-                # try joblib if available
-                loaded = joblib.load(uploaded_model) if JOBLIB_AVAILABLE else None
-                if loaded is not None:
-                    model_loaded = ("sklearn", loaded)
+                if JOBLIB_AVAILABLE:
+                    uploaded_model.seek(0)
+                    m = joblib.load(uploaded_model)
+                    model_loaded = ("sklearn", m)
                 else:
                     uploaded_model.seek(0)
                     model_loaded = ("pickle", pickle.load(uploaded_model))
@@ -302,11 +292,12 @@ with tabs[0]:
                 try:
                     X_proc = preproc.transform(X)
                 except Exception:
+                    # Try passing DataFrame directly if transformer expects df
                     X_proc = preproc.transform(X)
 
                 if mtype == "keras":
                     preds = model_obj.predict(X_proc)
-                    prob = float(preds[0][1]) if (preds.ndim == 2 and preds.shape[1] > 1) else float(preds[0])
+                    prob = float(preds[0][1]) if (hasattr(preds, "ndim") and preds.ndim == 2 and preds.shape[1] > 1) else float(preds[0])
                 else:
                     try:
                         prob = float(model_obj.predict_proba(X_proc)[0][1])
@@ -340,21 +331,30 @@ with tabs[0]:
         st.markdown("#### Risk level")
         st.progress(prog)
 
-       st.markdown("<p class='small-note'>This is a demo. In production you'd include many more features and validation.</p>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <p class='small-note'>This is a demo. In production you'd include many more features and validation.</p>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with tabs[1]:
-    st.markdown('<div class="main-card">', unsafe_allow_html=True)
+    st.markdown("<div class='main-card'>", unsafe_allow_html=True)
     st.subheader("About")
     st.write(
         """
         Demo app for hotel booking cancellation prediction.
-        If you want a branded/polished theme I can:
-        - Add hotel icon + header image
-        - Replace metric with a donut/gauge visualization
-        - Convert the UI to a darker theme or compact dashboard
+
+        - If a trained model and preprocessor are available (either uploaded or present in `/mnt/data`),
+          the app will use them.
+        - Otherwise, the app uses a simple, transparent heuristic so you can interact with the UI.
+
+        Notes:
+        - Ensure form field names match the columns your preprocessor expects.
+        - If your model is sklearn: save it with `joblib.dump(model, 'model.pkl')`.
+        - If your model is Keras: save as `.h5`.
         """
     )
-    st.markdown('</div>', unsafe_allow_html=True)
-
+    st.markdown("</div>", unsafe_allow_html=True)
