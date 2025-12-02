@@ -4,7 +4,7 @@ import numpy as np
 import pickle
 import os
 
-# Optional imports for different model types
+# Optional imports
 try:
     from tensorflow.keras.models import load_model as keras_load_model
     KERAS_AVAILABLE = True
@@ -17,344 +17,267 @@ try:
 except Exception:
     JOBLIB_AVAILABLE = False
 
-# ---------------- Page config ----------------
-st.set_page_config(page_title="Room Cancellation Predictor", layout="centered", page_icon="🏨")
 
-# ---------------- Safe, readable CSS ----------------
-# Use triple-quoted strings and single quotes inside HTML to avoid quoting problems.
-st.markdown(
-    """
-    <style>
-    /* Page gradient */
-    html, body, [data-testid="stAppViewContainer"] {
-        background: linear-gradient(180deg, #e9f0f6 0%, #dce8ef 30%, #f6f9fb 100%) !important;
-    }
-
-    /* Make sure the main App text is dark and legible */
-    .stApp, .stApp * {
-        color: #0f172a !important;
-    }
-
-    /* Main white card */
-    .main-card {
-        background: #ffffff !important;
-        color: #0f172a !important;
-        padding: 22px 26px !important;
-        border-radius: 14px !important;
-        box-shadow: 0 8px 30px rgba(15,23,42,0.06) !important;
-        margin-bottom: 22px !important;
-    }
-
-    .small-note { color: #4b5563 !important; }
-
-    /* Tabs visual */
-    .stTabs [data-baseweb="tab"] {
-        background-color: transparent !important;
-        color: #475569 !important;
-        border-radius: 8px !important;
-        padding: 8px 14px !important;
-        margin-right: 8px !important;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #ffffff !important;
-        color: #2563eb !important;
-        font-weight: 700 !important;
-        box-shadow: 0 6px 18px rgba(37,99,235,0.08) !important;
-    }
-
-    /* Buttons */
-    .stButton>button {
-        background: linear-gradient(90deg,#2563eb,#4f46e5) !important;
-        color: white !important;
-        border-radius: 10px !important;
-        padding: 0.6rem 1.6rem !important;
-        font-weight: 700 !important;
-        border: none !important;
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 10px 30px rgba(79,70,229,0.18) !important;
-    }
-
-    /* Inputs - make their backgrounds white and text dark */
-    input, textarea, select {
-        background: #ffffff !important;
-        color: #0f172a !important;
-    }
-
-    /* Number input styling */
-    div[role="spinbutton"] input[type="number"], input[type="number"] {
-        background: #11182710 !important;
-        color: #0f172a !important;
-        border-radius: 8px !important;
-        padding: 10px 12px !important;
-        border: 1px solid #e6edf3 !important;
-    }
-
-    /* Metric boxes */
-    [data-testid="stMetric"] {
-        background: linear-gradient(180deg,#ffffff,#fbfdff) !important;
-        border-radius: 10px !important;
-        padding: 12px !important;
-        border: 1px solid #eef3f7 !important;
-        color: #0f172a !important;
-    }
-
-    /* Sidebar readability */
-    [data-testid="stSidebar"] { background: #ffffff !important; color: #0f172a !important; box-shadow: 0 6px 20px rgba(2,6,23,0.04) inset; }
-
-    </style>
-    """,
-    unsafe_allow_html=True,
+# ---------------- Streamlit Page Setup ----------------
+st.set_page_config(
+    page_title="Room Cancellation Predictor",
+    layout="centered",
+    page_icon="🏨"
 )
 
-# ---------------- Paths ----------------
-MODEL_PATH = "/mnt/data/Hotel reservatiosn.h5"   # adjust if your model filename differs
-PREPROC_PATH = "/mnt/data/preprocessor.pkl"    # adjust if your preprocessor filename differs
 
-# ---------------- Helpers ----------------
+# ---------------- FIX UI + MAKE INPUTS VISIBLE ----------------
+st.markdown("""
+<style>
+
+html, body, [data-testid="stAppViewContainer"] {
+    background: linear-gradient(180deg, #e9f0f6 0%, #dce8ef 30%, #f6f9fb 100%) !important;
+}
+
+/* MAIN TEXT */
+.stApp, .stApp * {
+    color: #0f172a !important;
+}
+
+/* MAIN CARD */
+.main-card {
+    background: #ffffff !important;
+    padding: 22px 26px !important;
+    border-radius: 14px !important;
+    box-shadow: 0 8px 30px rgba(15,23,42,0.06) !important;
+    margin-bottom: 22px !important;
+}
+
+.small-note { color: #4b5563 !important; }
+
+/* TABS */
+.stTabs [aria-selected="true"] {
+    background-color: #ffffff !important;
+    color: #2563eb !important;
+    font-weight: 700 !important;
+    box-shadow: 0 6px 18px rgba(37,99,235,0.08) !important;
+}
+
+/* BUTTON STYLE */
+.stButton>button {
+    background: linear-gradient(90deg,#2563eb,#4f46e5) !important;
+    color: white !important;
+    border-radius: 10px !important;
+    padding: 0.6rem 1.6rem !important;
+    font-weight: 700 !important;
+    border: none !important;
+}
+
+/* INPUT FIX (DARK MODE OVERRIDE) */
+input[type="text"], input[type="number"], textarea, select {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+/* Fix black background in number boxes */
+div[data-baseweb="input"] input {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+/* Dropdown fix */
+div[data-baseweb="select"] > div {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+/* Border styling */
+input, select, textarea {
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+}
+
+/* Footer */
+.footer-tag {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    margin-top: 40px;
+    color: #334155;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# ---------------- FILE PATHS ----------------
+MODEL_PATH = "/mnt/data/Hotel reservatiosn.h5"
+PREPROC_PATH = "/mnt/data/preprocessor.pkl"
+
+
+# ---------------- LOADERS ----------------
 @st.cache_data
 def load_preprocessor(path=PREPROC_PATH):
     if os.path.exists(path):
         try:
             with open(path, "rb") as f:
-                pre = pickle.load(f)
-            return pre
+                return pickle.load(f)
         except Exception as e:
-            st.warning(f"Couldn't load preprocessor from {path}: {e}")
-            return None
+            st.warning(f"Error loading preprocessor: {e}")
     return None
+
 
 @st.cache_resource
 def load_trained_model(path=MODEL_PATH):
     if not os.path.exists(path):
         return None
-    lower = path.lower()
-    # Keras .h5 model
-    if lower.endswith(".h5") or lower.endswith(".keras"):
-        if KERAS_AVAILABLE:
-            try:
-                m = keras_load_model(path)
-                return ("keras", m)
-            except Exception as e:
-                st.warning(f"Found .h5 file but couldn't load Keras model: {e}")
-        else:
-            st.warning("Keras/TensorFlow not available; .h5 cannot be loaded here.")
-            return None
-    # Try joblib (sklearn)
+
+    # keras model
+    if path.lower().endswith(".h5") and KERAS_AVAILABLE:
+        try:
+            return ("keras", keras_load_model(path))
+        except Exception as e:
+            st.warning(f"Could not load keras model: {e}")
+
+    # sklearn or pickle
     if JOBLIB_AVAILABLE:
         try:
-            m = joblib.load(path)
-            return ("sklearn", m)
-        except Exception:
+            return ("sklearn", joblib.load(path))
+        except:
             pass
-    # Fallback to pickle
+
     try:
         with open(path, "rb") as f:
-            m = pickle.load(f)
-        return ("pickle", m)
-    except Exception as e:
-        st.warning(f"Couldn't load model from {path}: {e}")
+            return ("pickle", pickle.load(f))
+    except:
         return None
 
-# Fallback heuristic predictor
+
+# ---------------- HEURISTIC MODEL ----------------
 def heuristic_predict(row):
-    score = 0.0
-    score += 0.45 * (row.get("lead_time", 0) / 365.0)
-    score += 0.25 * (1 if row.get("previous_cancellations", 0) > 0 else 0)
-    score += 0.15 * (1 if row.get("deposit_type") == "No Deposit" else 0)
-    score += 0.15 * (1 if row.get("booking_changes", 0) > 2 else 0)
-    prob = float(min(max(score, 0.0), 0.99))
-    return prob
+    score = 0
+    score += 0.45 * (row["lead_time"] / 365)
+    score += 0.25 * (1 if row["previous_cancellations"] > 0 else 0)
+    score += 0.15 * (1 if row["deposit_type"] == "No Deposit" else 0)
+    score += 0.15 * (1 if row["booking_changes"] > 2 else 0)
+    return float(max(0, min(score, 0.99)))
 
-# ---------------- Sidebar ----------------
+
+# ---------------- SIDEBAR ----------------
 st.sidebar.title("⚙ How to use")
-st.sidebar.markdown(
-    """
-1. Enter booking details on the main screen  
-2. Click **Predict**  
-3. See the probability and label (Cancelled / Not cancelled)
-
-(Optional) Place model files into `/mnt/data`:
-- `preprocessor.pkl`  
-- `Hotel reservatiosn.h5`  
-"""
-)
-st.sidebar.markdown("---")
+st.sidebar.write("Enter the details → click **Predict** → get outcome.")
 st.sidebar.write("Model present:", os.path.exists(MODEL_PATH))
 st.sidebar.write("Preprocessor present:", os.path.exists(PREPROC_PATH))
 
-# Allow uploading files from browser
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Upload (optional)**")
-uploaded_preproc = st.sidebar.file_uploader("Upload preprocessor (.pkl)", type=["pkl"], key="up_preproc")
-uploaded_model = st.sidebar.file_uploader("Upload model (.pkl/.joblib/.h5)", type=["pkl","joblib","h5","keras"], key="up_model")
 
-if uploaded_preproc is not None:
-    try:
-        uploaded_preproc.seek(0)
-        preproc_obj = pickle.load(uploaded_preproc)
-        st.sidebar.success("Preprocessor uploaded (session).")
-        st.session_state["_uploaded_preproc"] = preproc_obj
-    except Exception as e:
-        st.sidebar.error(f"Could not load preprocessor: {e}")
+# ---------------- MAIN HEADER ----------------
+st.markdown("""
+<div class="main-card">
+    <h1>🏨 Room Cancellation Predictor</h1>
+    <p class="small-note">Estimate the probability that a hotel room booking will be cancelled.</p>
+</div>
+""", unsafe_allow_html=True)
 
-if uploaded_model is not None:
-    try:
-        if uploaded_model.name.lower().endswith(".h5") and KERAS_AVAILABLE:
-            tmp = "/tmp/_uploaded_model.h5"
-            with open(tmp, "wb") as f:
-                f.write(uploaded_model.getbuffer())
-            model_loaded = ("keras", keras_load_model(tmp))
-        else:
-            try:
-                if JOBLIB_AVAILABLE:
-                    uploaded_model.seek(0)
-                    m = joblib.load(uploaded_model)
-                    model_loaded = ("sklearn", m)
-                else:
-                    uploaded_model.seek(0)
-                    model_loaded = ("pickle", pickle.load(uploaded_model))
-            except Exception:
-                uploaded_model.seek(0)
-                model_loaded = ("pickle", pickle.load(uploaded_model))
-        st.session_state["_uploaded_model"] = model_loaded
-        st.sidebar.success("Model uploaded (session).")
-    except Exception as e:
-        st.sidebar.error(f"Could not load model: {e}")
 
-# ---------------- Main UI ----------------
-st.markdown(
-    """
-    <div class="main-card">
-        <h1 style="margin-bottom:6px;">🏨 Room Cancellation Predictor</h1>
-        <p class="small-note">A clear, simple UI to estimate whether a booking may be cancelled. Use it for demo or connect your real model.</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
+# ---------------- TABS ----------------
 tabs = st.tabs(["🔮 Prediction", "ℹ About"])
 
+
+# ---------------- PREDICTION TAB ----------------
 with tabs[0]:
     st.markdown('<div class="main-card">', unsafe_allow_html=True)
+
     st.subheader("Booking details")
-    st.markdown('<p class="small-note">Fill the booking details below and press Predict.</p>', unsafe_allow_html=True)
+    st.markdown('<p class="small-note">Fill these fields to generate a prediction.</p>',
+                unsafe_allow_html=True)
 
     with st.form("predict_form"):
         col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("#### Stay")
-            lead_time = st.number_input("Lead time (days)", min_value=0, max_value=2000, value=30)
-            stays_weekend_nights = st.number_input("Weekend nights", min_value=0, max_value=30, value=0)
-            stays_week_nights = st.number_input("Week nights", min_value=0, max_value=365, value=2)
 
-            st.markdown("#### Guests")
-            adults = st.number_input("Adults", min_value=0, max_value=10, value=2)
-            children = st.number_input("Children", min_value=0, max_value=10, value=0)
+        with col1:
+            lead_time = st.number_input("Lead time (days)", 0, 2000, 30)
+            stays_weekend = st.number_input("Weekend nights", 0, 30, 0)
+            stays_week = st.number_input("Week nights", 0, 365, 2)
+            adults = st.number_input("Adults", 0, 10, 2)
+            children = st.number_input("Children", 0, 10, 0)
 
         with col2:
-            st.markdown("#### History")
-            previous_cancellations = st.number_input("Previous cancellations", min_value=0, max_value=50, value=0)
-            booking_changes = st.number_input("Booking changes", min_value=0, max_value=50, value=0)
+            previous_c = st.number_input("Previous cancellations", 0, 50, 0)
+            changes = st.number_input("Booking changes", 0, 50, 0)
+            deposit = st.selectbox("Deposit type", ["No Deposit", "Refundable", "Non Refund"])
+            segment = st.selectbox("Market segment", 
+                                   ["Direct", "Online TA", "Offline TA/TO", "Groups",
+                                    "Corporate", "Complementary", "Aviation"])
 
-            st.markdown("#### Commercial")
-            deposit_type = st.selectbox("Deposit type", ["No Deposit", "Refundable", "Non Refund"])
-            market_segment = st.selectbox("Market segment", ["Direct", "Online TA", "Offline TA/TO", "Groups", "Corporate", "Complementary", "Aviation"])
+        submit = st.form_submit_button("Predict")
 
-        submitted = st.form_submit_button("Predict")
-
-    if submitted:
-        feature_row = {
-            "lead_time": int(lead_time),
-            "stays_weekend_nights": int(stays_weekend_nights),
-            "stays_week_nights": int(stays_week_nights),
-            "adults": int(adults),
-            "children": int(children),
-            "previous_cancellations": int(previous_cancellations),
-            "booking_changes": int(booking_changes),
-            "deposit_type": deposit_type,
-            "market_segment": market_segment,
+    if submit:
+        # prepare row
+        row = {
+            "lead_time": lead_time,
+            "stays_weekend_nights": stays_weekend,
+            "stays_week_nights": stays_week,
+            "adults": adults,
+            "children": children,
+            "previous_cancellations": previous_c,
+            "booking_changes": changes,
+            "deposit_type": deposit,
+            "market_segment": segment
         }
 
-        st.markdown("### Inputs")
-        st.json(feature_row)
+        st.write("### Inputs")
+        st.json(row)
 
-        # load preproc / model (uploaded session-state preferred)
-        preproc = st.session_state.get("_uploaded_preproc", None) or load_preprocessor()
-        model_info = st.session_state.get("_uploaded_model", None) or load_trained_model()
+        # load model
+        pre = load_preprocessor()
+        model_info = load_trained_model()
 
-        if preproc is not None and model_info is not None:
+        if pre and model_info:
             try:
-                mtype, model_obj = model_info
-                st.success("✅ Loaded preprocessor & model; running prediction.")
-                X = pd.DataFrame([feature_row])
-                try:
-                    X_proc = preproc.transform(X)
-                except Exception:
-                    # Try passing DataFrame directly if transformer expects df
-                    X_proc = preproc.transform(X)
+                mtype, model = model_info
+                X = pd.DataFrame([row])
+                Xp = pre.transform(X)
 
                 if mtype == "keras":
-                    preds = model_obj.predict(X_proc)
-                    prob = float(preds[0][1]) if (hasattr(preds, "ndim") and preds.ndim == 2 and preds.shape[1] > 1) else float(preds[0])
+                    preds = model.predict(Xp)
+                    prob = float(preds[0][1]) if preds.ndim == 2 else float(preds[0])
                 else:
                     try:
-                        prob = float(model_obj.predict_proba(X_proc)[0][1])
-                    except Exception:
-                        pred = model_obj.predict(X_proc)[0]
-                        prob = 1.0 if pred == 1 else 0.0
-                label = "Cancelled" if prob >= 0.5 else "Not cancelled"
+                        prob = float(model.predict_proba(Xp)[0][1])
+                    except:
+                        prob = float(model.predict(Xp)[0])
+
             except Exception as e:
                 st.error(f"Model error: {e}")
-                st.warning("Falling back to heuristic.")
-                prob = heuristic_predict(feature_row)
-                label = "Cancelled" if prob >= 0.5 else "Not cancelled"
+                prob = heuristic_predict(row)
         else:
-            st.warning("No preprocessor/model available; using heuristic predictor.")
-            prob = heuristic_predict(feature_row)
-            label = "Cancelled" if prob >= 0.5 else "Not cancelled"
+            prob = heuristic_predict(row)
 
-        # Results
-        st.markdown("### Result")
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            st.metric("Probability of cancellation", f"{prob:.2%}")
-        with c2:
-            if label == "Cancelled":
-                st.error(f"Prediction: {label}")
-            else:
-                st.success(f"Prediction: {label}")
+        label = "Cancelled" if prob >= 0.5 else "Not cancelled"
 
-        # Progress bar (0-100)
-        prog = int(min(max(prob * 100, 0), 100))
-        st.markdown("#### Risk level")
-        st.progress(prog)
+        st.write("### Result")
+        st.metric("Cancellation Probability", f"{prob*100:.2f}%")
 
-        st.markdown(
-            """
-            <p class='small-note'>This is a demo. In production you'd include many more features and validation.</p>
-            """,
-            unsafe_allow_html=True,
-        )
+        if label == "Cancelled":
+            st.error(label)
+        else:
+            st.success(label)
+
+        st.progress(int(prob * 100))
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+
+# ---------------- ABOUT TAB ----------------
 with tabs[1]:
-    st.markdown("<div class='main-card'>", unsafe_allow_html=True)
-    st.subheader("About")
-    st.write(
-        """
-        Demo app for hotel booking cancellation prediction.
-
-        - If a trained model and preprocessor are available (either uploaded or present in `/mnt/data`),
-          the app will use them.
-        - Otherwise, the app uses a simple, transparent heuristic so you can interact with the UI.
-
-        Notes:
-        - Ensure form field names match the columns your preprocessor expects.
-        - If your model is sklearn: save it with `joblib.dump(model, 'model.pkl')`.
-        - If your model is Keras: save as `.h5`.
-        """
-    )
+    st.markdown('<div class="main-card">', unsafe_allow_html=True)
+    st.subheader("About this app")
+    st.write("""
+    This demo predicts whether a hotel booking will be cancelled.
+    If a trained model is available, the app uses it.  
+    Otherwise it falls back to a simple heuristic.
+    """)
     st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ---------------- SIGNATURE ----------------
+st.markdown("""
+<div class='footer-tag'>
+    Created by <strong>Venky & Subba Reddy</strong>
+</div>
+""", unsafe_allow_html=True)
