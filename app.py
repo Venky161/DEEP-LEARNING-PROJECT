@@ -138,7 +138,8 @@ if submitted:
         st.info(f'Heuristic label: **{label}**')
 
 st.markdown('---')
-st.write('**Notes:**
+st.write('**Notes:**)
 - To use your real model, upload `preprocessor.pkl` (a sklearn-style transformer) and `Hotel reservatiosn.h5` (a Keras model) to `/mnt/data` before running.
 - If your model expects different columns, edit the feature names in the form to match exactly the columns used during training.
 - If your model is a sklearn pickle instead of Keras `.h5`, modify `load_trained_model` to `joblib.load` or `pickle.load` accordingly.')
+
