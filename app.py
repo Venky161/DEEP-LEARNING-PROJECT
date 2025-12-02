@@ -340,7 +340,7 @@ with tabs[0]:
         st.markdown("#### Risk level")
         st.progress(prog)
 
-        st.markdown('<p class="small-note">This is a demo. In production you'd include many more features and validation.</p>', unsafe_allow_html=True)
+       st.markdown("<p class='small-note'>This is a demo. In production you'd include many more features and validation.</p>", unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -357,3 +357,4 @@ with tabs[1]:
         """
     )
     st.markdown('</div>', unsafe_allow_html=True)
+
