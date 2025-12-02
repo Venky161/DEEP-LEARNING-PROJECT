@@ -20,7 +20,7 @@ except Exception:
 # ---------------- Page config ----------------
 st.set_page_config(page_title="Room Cancellation Predictor", layout="wide", page_icon="🏨")
 
-# --------------- Enhanced CSS (polish + fixes) ---------------
+# --------------- CSS (hero widened + subtitle animation + UI polish) ---------------
 st.markdown(
     """
     <style>
@@ -39,25 +39,81 @@ st.markdown(
     }
     .stApp, .stApp * { color: #0f172a !important; }
 
-    /* Hero */
-    .hero {
-        background: linear-gradient(90deg, rgba(255,255,255,0.85), rgba(255,255,255,0.95));
-        border-radius: 16px;
-        padding: 22px;
-        margin-bottom: 18px;
-        box-shadow: 0 12px 40px rgba(2,6,23,0.06);
+    /* WIDE HERO: spans across the content area with big visual presence */
+    .wide-hero {
+        width: 100%;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        justify-content: flex-start;
+        background: linear-gradient(90deg, rgba(255,255,255,0.95), rgba(255,255,255,0.98));
+        padding: 28px 34px;
+        border-radius: 18px;
+        box-shadow: 0 14px 45px rgba(2,6,23,0.06);
+        margin-bottom: 22px;
+        overflow: hidden;
+    }
+
+    .wide-hero .hero-left {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        min-width: 420px;
+    }
+
+    .wide-hero .logo {
+        width:110px;
+        height:110px;
+        border-radius:16px;
         display:flex;
         align-items:center;
-        gap:18px;
+        justify-content:center;
+        font-size:48px;
+        background: linear-gradient(180deg,#ffffff,#f6fbff);
+        box-shadow: 0 12px 34px rgba(15,23,42,0.06);
     }
-    .hero .logo {
-        width:84px; height:84px; border-radius:14px;
-        display:flex; align-items:center; justify-content:center;
-        font-size:40px; background: linear-gradient(180deg,#fff,#f7fbff);
-        box-shadow: 0 8px 24px rgba(15,23,42,0.06);
+
+    .wide-hero .title-wrap {
+        display:flex;
+        flex-direction:column;
+        gap:6px;
     }
-    .hero h1 { margin:0; font-size:28px; }
-    .hero p { margin:6px 0 0 0; color:var(--muted); }
+
+    .wide-hero h1 {
+        margin:0;
+        font-size:34px;
+        font-weight:800;
+        letter-spacing: -0.3px;
+    }
+
+    /* Subtitle: subtle slide-up + fade animation */
+    @keyframes slideFadeUp {
+      0% { transform: translateY(12px); opacity: 0; }
+      100% { transform: translateY(0px); opacity: 1; }
+    }
+    .wide-hero .subtitle {
+        margin:0;
+        color: var(--muted);
+        font-size:15px;
+        animation: slideFadeUp 700ms ease-out 250ms both;
+    }
+
+    /* Hero right area: action buttons / quick stats */
+    .wide-hero .hero-right {
+        margin-left: auto;
+        display:flex;
+        gap:12px;
+        align-items:center;
+    }
+    .hero-btn {
+        padding:10px 18px;
+        border-radius:10px;
+        font-weight:700;
+        background: linear-gradient(90deg,var(--accent-1),var(--accent-2));
+        color:#fff;
+        border:none;
+        box-shadow: 0 8px 24px rgba(37,99,235,0.12);
+    }
 
     /* KPI row */
     .kpi-row { display:flex; gap:14px; margin-bottom:18px; }
@@ -67,7 +123,7 @@ st.markdown(
         border-radius:12px;
         box-shadow: 0 6px 18px rgba(15,23,42,0.04);
         flex:1;
-        min-width:120px;
+        min-width:140px;
     }
     .kpi .label { color:var(--muted); font-size:13px; }
     .kpi .value { font-weight:800; font-size:20px; margin-top:6px; }
@@ -124,27 +180,15 @@ st.markdown(
         border-radius: 10px !important;
         border: none !important;
     }
-    .stButton>button:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 14px 36px rgba(79,70,229,0.14) !important;
-    }
+    .stButton>button:hover { transform: translateY(-3px); box-shadow: 0 14px 36px rgba(79,70,229,0.14) !important; }
 
-    /* Table */
-    .stTable {
-        border-radius: 8px !important;
-        overflow: hidden !important;
-        border: 1px solid #eef3f7 !important;
-    }
-
-    /* Result small badge */
-    .result-badge {
-      padding:10px 14px; border-radius:10px; font-weight:700; display:inline-block;
-    }
+    /* Result badge */
+    .result-badge { padding:10px 14px; border-radius:10px; font-weight:700; display:inline-block; }
 
     /* Signature */
     .signature { text-align:center; margin-top:28px; }
     .signature .name {
-        font-family: 'Brush Script MT', 'Satisfy', cursive;
+        font-family: 'Brush Script MT','Satisfy',cursive;
         font-size: 36px;
         font-weight: 800;
         color: #0f172a;
@@ -163,7 +207,6 @@ st.markdown(
         padding: 12px !important;
         border: 1px solid #e6edf3 !important;
     }
-
     </style>
     """,
     unsafe_allow_html=True,
@@ -173,7 +216,7 @@ st.markdown(
 MODEL_PATH = "/mnt/data/Hotel reservatiosn.h5"
 PREPROC_PATH = "/mnt/data/preprocessor.pkl"
 
-# ---------------- Load helpers ----------------
+# ---------------- Loaders ----------------
 @st.cache_data
 def load_preprocessor(path=PREPROC_PATH):
     if os.path.exists(path):
@@ -214,24 +257,29 @@ def heuristic_predict(row):
     score += 0.15 * (1 if row.get("booking_changes", 0) > 2 else 0)
     return float(min(max(score, 0.0), 0.99))
 
-# ---------------- Hero (logo + title + actions) ----------------
-col_logo, col_title = st.columns([1, 7], gap="small")
-with col_logo:
-    st.markdown('<div class="hero"><div class="logo">🏩</div></div>', unsafe_allow_html=True)
-with col_title:
+# ---------------- Hero (wider + animated subtitle) ----------------
+col1, col2 = st.columns([1, 4], gap="small")
+with col1:
+    st.markdown('<div class="wide-hero" style="align-items:center;"><div class="hero-left"><div class="logo">🏩</div></div></div>', unsafe_allow_html=True)
+with col2:
     st.markdown(
         """
-        <div class="hero" style="padding-left:18px;">
-            <div style="display:flex; flex-direction:column;">
-                <h1>Room Cancellation Predictor</h1>
-                <p class="small-note">Beautiful, clear UI — connect your model or use the built-in heuristic to estimate cancellation risk.</p>
+        <div class="wide-hero" style="padding-left:8px;">
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                <div class="title-wrap">
+                    <h1>Room Cancellation Predictor</h1>
+                    <p class="subtitle">A clear, modern UI — connect your model or use the built-in heuristic to estimate cancellation risk.</p>
+                </div>
+            </div>
+            <div class="hero-right" style="margin-left:auto;">
+                <button class="hero-btn" onclick="">Quick demo</button>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-# ---------------- KPI row (dynamic small metrics) ----------------
+# ---------------- KPI row ----------------
 lead_sample = 30
 k1, k2, k3 = st.columns([1,1,1], gap="small")
 with k1:
@@ -241,8 +289,8 @@ with k2:
 with k3:
     st.markdown('<div class="kpi"><div class="label">Model status</div><div class="value">' + ('Loaded' if os.path.exists(MODEL_PATH) else 'Heuristic') + '</div></div>', unsafe_allow_html=True)
 
-# ---------------- Layout - form (left) and results (right) ----------------
-left, right = st.columns([2,1], gap="large")
+# ---------------- Layout - form & results ----------------
+left, right = st.columns([2, 1], gap="large")
 
 with left:
     st.markdown('<div class="panel">', unsafe_allow_html=True)
@@ -271,7 +319,6 @@ with left:
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Inputs summary as neat table (not dark JSON)
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.subheader("Inputs summary")
     feature_row = {
@@ -293,8 +340,6 @@ with right:
     st.markdown('<div class="panel">', unsafe_allow_html=True)
     st.subheader("Prediction")
     st.markdown('<p class="small-note">Prediction results and quick actions.</p>', unsafe_allow_html=True)
-
-    # placeholders
     metric_placeholder = st.empty()
     badge_placeholder = st.empty()
     gauge_placeholder = st.empty()
@@ -340,13 +385,11 @@ if submit:
     else:
         badge_placeholder.markdown("<div class='result-badge' style='background:#f0fdf4;color:#047857'>Prediction: NOT CANCELLED</div>", unsafe_allow_html=True)
 
-    # Donut gauge
     fig = go.Figure(go.Pie(values=[prob, 1-prob], hole=0.66, marker_colors=["#ef4444","#10b981"], textinfo="none"))
     fig.update_layout(showlegend=False, margin=dict(t=6,b=6,l=6,r=6), height=260,
                       annotations=[dict(text=f"{prob:.0%}", x=0.5, y=0.5, font_size=26, showarrow=False)])
     gauge_placeholder.plotly_chart(fig, use_container_width=True)
 
-    # Download example (export inputs + prediction)
     result_csv = pd.DataFrame([feature_row]).assign(prediction_prob=prob)
     download_placeholder.download_button("Download result CSV", data=result_csv.to_csv(index=False).encode("utf-8"),
                                          file_name="prediction_result.csv", mime="text/csv")
