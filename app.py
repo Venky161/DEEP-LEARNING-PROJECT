@@ -94,8 +94,8 @@ if submitted:
         'market_segment': market_segment
     }
 
-    st.write('### Inputs summary')
-    st.json(feature_row)
+    #st.write('### Inputs summary')
+    #st.json(feature_row)
 
     # Try loading preprocessor and model
     preproc = load_preprocessor()
@@ -140,10 +140,9 @@ if submitted:
 st.markdown('---')
 st.write("""
 **Notes:**
-- To use your real model, upload `preprocessor.pkl` and `Hotel reservatiosn.h5` to `/mnt/data`.
-- Make sure your feature names in the form match the training data columns.
-- If your model is not Keras `.h5`, adjust the load function accordingly.
+- This is not real project ,This is what happens in real world
 """)
+
 
 
 
